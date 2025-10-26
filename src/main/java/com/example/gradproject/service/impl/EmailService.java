@@ -1,9 +1,5 @@
 package com.example.gradproject.service.impl;
 
-import com.example.gradproject.exception.EmailServiceException;
-import jakarta.annotation.PostConstruct;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +8,12 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.example.gradproject.exception.EmailServiceException;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+
 @Service
 public class EmailService {
 
@@ -19,13 +21,13 @@ public class EmailService {
 
     private final JavaMailSender javaMailSender;
 
-    @Value("${FRONTEND-URL}")
+    @Value("${frontend.url}")
     private String frontendUrl;
 
-    @Value("${FROM-EMAIL}")
+    @Value("${from.email}")
     private String fromEmail;
 
-    @Value("${FROM-NAME}")
+    @Value("${from.name}")
     private String fromName;
 
     @Value("${spring.mail.username}")

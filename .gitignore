@@ -1,0 +1,14 @@
+# Build files
+target/
+*.jar
+*.war
+*.class
+
+# Sensitive configuration
+secrets.properties
+.env
+.env.local
+
+# IDE files
+.idea/
+*.iml
