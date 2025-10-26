@@ -64,6 +64,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**")
                         .permitAll()
+                        .requestMatchers("/api/files/**")
+                        .authenticated()
                         .anyRequest()
                         .authenticated())
                 .sessionManagement(session -> session
