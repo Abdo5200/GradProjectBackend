@@ -126,7 +126,7 @@ public class EmailService {
                         </div>
                         <div class="content">
                             <h2>Hello %s,</h2>
-                            <p>You requested to reset your password for your Todo App account.</p>
+                            <p>You requested to reset your password for your Medical System account.</p>
                             <p>Click the button below to reset your password:</p>
                             <a href="%s" class="reset-button">Reset Password</a>
                             <p>Or copy and paste this link in your browser:</p>

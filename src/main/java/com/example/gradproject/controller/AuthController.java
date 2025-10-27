@@ -1,22 +1,39 @@
 package com.example.gradproject.controller;
 
-import com.example.gradproject.DTO.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.gradproject.DTO.ForgotPasswordRequest;
+import com.example.gradproject.DTO.ForgotPasswordResponse;
+import com.example.gradproject.DTO.LoginRequest;
+import com.example.gradproject.DTO.LoginResponse;
+import com.example.gradproject.DTO.ResetPasswordRequest;
+import com.example.gradproject.DTO.ResetPasswordResponse;
+import com.example.gradproject.DTO.SignupRequest;
+import com.example.gradproject.DTO.SignupResponse;
 import com.example.gradproject.config.JwtUtil;
 import com.example.gradproject.service.UserService;
 import com.example.gradproject.service.impl.PasswordResetService;
 import com.example.gradproject.service.impl.TokenBlacklistService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController()
 @RequestMapping("/auth")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final UserService userService;
     private final PasswordResetService passwordResetService;
@@ -25,7 +42,7 @@ public class AuthController {
 
     @Autowired
     public AuthController(UserService userService, PasswordResetService passwordResetService,
-                          TokenBlacklistService tokenBlacklistService, JwtUtil jwtUtil) {
+            TokenBlacklistService tokenBlacklistService, JwtUtil jwtUtil) {
         this.userService = userService;
         this.passwordResetService = passwordResetService;
         this.tokenBlacklistService = tokenBlacklistService;
@@ -58,6 +75,7 @@ public class AuthController {
             // Blacklist the token
             long expirationTime = jwtUtil.extractExpiration(token).getTime();
             tokenBlacklistService.blacklistToken(token, expirationTime);
+            logger.info("Token blacklisted successfully");
         }
 
         Map<String, String> response = new HashMap<>();
