@@ -89,57 +89,7 @@ public class FileUploadController {
                     .body(Map.of("error", "Error uploading file: " + e.getMessage()));
         }
     }
-/*
-    @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "folder", required = false, defaultValue = "images/") String folder,
-            @RequestHeader("Authorization") String authHeader) {
 
-        try {
-            // Validate file
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
-            }
-
-            // Validate image type (optional)
-            if (!isImageFile(file)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "File must be an image"));
-            }
-
-            // ✅ Extract user from JWT
-            String token = authHeader.replace("Bearer ", "");
-            String userEmail = jwtUtil.extractUsername(token);
-
-            // ✅ Find user in database
-            User user = userRepo.findByEmail(userEmail)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            // ✅ Upload to S3
-            String fileUrl = s3Service.uploadFile(file, folder);
-
-            // ✅ Save photo in DB
-            Photo photo = new Photo();
-            photo.setUrl(fileUrl);
-            photo.setUser(user);
-            photoRepository.save(photo);
-
-            // ✅ Return response
-            Map<String, String> response = new HashMap<>();
-            response.put("url", fileUrl);
-            response.put("message", "✅ File uploaded and saved successfully!");
-
-            System.out.println(fileUrl);
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            logger.error("Error uploading file", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error uploading file: " + e.getMessage()));
-        }
-    }
-
-*/
     /**
      * Upload multiple images
      * 
@@ -225,43 +175,7 @@ public class FileUploadController {
                     .body(Map.of("error", "Error generating URL: " + e.getMessage()));
         }
     }
-/*
-    @GetMapping("/my-photos")
-    public ResponseEntity<?> getMyPhotos(@RequestHeader("Authorization") String token) {
-        try {
-            // ✅ Remove "Bearer " prefix
-            String jwt = token.replace("Bearer ", "");
 
-            // ✅ Extract email (username) from token
-            String email = jwtUtil.extractUsername(jwt);
-
-            // ✅ Find the user by email
-            User user = userRepo.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            // ✅ Get user’s photos
-            List<Photo> photos = user.getPhotos();
-
-            // ✅ Convert to list of URLs
-            List<String> photoUrls = photos.stream()
-                    .map(Photo::getUrl)
-                    .toList();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("user", email);
-            response.put("count", photoUrls.size());
-            response.put("photos", photoUrls);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Error fetching photos: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
-    }
-
-   */
     @GetMapping("/my-photos")
     public ResponseEntity<?> getMyPhotos(@RequestHeader("Authorization") String token) {
         try {
@@ -283,10 +197,11 @@ public class FileUploadController {
                     .map(photo -> {
                         // extract key from old URL (e.g., "images/abc.png")
 
-                        //String oldUrl = photo.getUrl();
-                        //String key = extractKeyFromUrl(oldUrl);
-                          String key = photo.getUrl();
+                        String oldUrl = photo.getUrl();
+                        String key = extractKeyFromUrl(oldUrl);
+                         // String key = photo.getUrl();
                         // generate new presigned URL
+                        System.out.println(key);
                         String newUrl = s3Service.generatePresignedUrl(key, Duration.ofMinutes(60));
                         System.out.println(newUrl);
                         return Map.of(
@@ -315,6 +230,7 @@ public class FileUploadController {
      * e.g. converts:
      *   https://bucketname.s3.eu-central-1.amazonaws.com/images/abc.png?...  →  images/abc.png
      */
+
     private String extractKeyFromUrl(String fileUrl) {
         if (fileUrl == null || !fileUrl.contains(".amazonaws.com/")) {
             return fileUrl; // fallback, maybe already a key
@@ -331,6 +247,7 @@ public class FileUploadController {
         }
         return fileUrl;
     }
+
 
 
 }
