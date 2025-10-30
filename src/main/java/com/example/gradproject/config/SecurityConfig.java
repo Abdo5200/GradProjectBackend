@@ -56,7 +56,8 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
+    // the first one -->>
+/*
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
@@ -75,6 +76,65 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return httpSecurity.build();
     }
+    */
+// for test
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+                // Enable CORS and disable CSRF since you're using JWT
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
+
+                // Authorization configuration
+                .authorizeHttpRequests(auth -> auth
+                        // Public pages (accessible without login)
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/signup.html",
+                                "/login.html",
+                                "/forgot-password.html",
+                                "/reset-password.html",   // ✅ Reset password page
+                                "/upload.html",
+                                "/view-image.html",       // ✅ View uploaded image page
+                                "/showall.html",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/favicon.ico",
+
+                                // ✅ Public authentication APIs
+                                "/auth/signup",
+                                "/auth/login",
+                                "/auth/forgot-password",
+                                "/auth/reset-password",
+
+                                // ✅ Public endpoints for viewing files/images
+                                "/api/files/view/**",
+                                "/api/files/public/**"
+                        ).permitAll()
+
+                        // Secure API endpoints (JWT required)
+                        .requestMatchers("/api/**").authenticated()
+
+                        // All other routes require authentication
+                        .anyRequest().authenticated()
+                )
+
+                // Stateless session management (JWT-based)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // Custom authentication provider
+                .authenticationProvider(authenticationProvider())
+
+                // Add JWT authentication filter
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return httpSecurity.build();
+    }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

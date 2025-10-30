@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Uploaded Photos</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .gallery img {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+        }
+
+        .gallery img:hover {
+            transform: scale(1.05);
+        }
+
+        #message {
+            margin-top: 15px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<h2>My Uploaded Photos</h2>
+<button onclick="window.location.href='upload.html'">Back to Upload</button>
+
+<div id="message"></div>
+<div class="gallery" id="photoGallery"></div>
+
+<script>
+    async function loadPhotos() {
+        const token = localStorage.getItem("token");
+        const gallery = document.getElementById("photoGallery");
+        const message = document.getElementById("message");
+
+        if (!token) {
+            message.textContent = "You must be logged in to view your photos.";
+            return;
+        }
+
+        try {
+            const response = await fetch("http://localhost:8080/api/files/my-photos", {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch photos");
+            }
+
+            const data = await response.json();
+
+            gallery.innerHTML = "";
+
+            if (data.photos && data.photos.length > 0) {
+                data.photos.forEach(photo => {
+                    const img = document.createElement("img");
+                    img.src = photo.url; // ✅ fixed here
+                    gallery.appendChild(img);
+                });
+            } else {
+                message.textContent = "You have not uploaded any photos yet.";
+            }
+
+        } catch (error) {
+            message.textContent = "Error loading photos: " + error.message;
+        }
+    }
+
+    loadPhotos();
+</script>
+
+</body>
+</html>
