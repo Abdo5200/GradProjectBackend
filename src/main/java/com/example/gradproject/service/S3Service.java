@@ -1,17 +1,10 @@
 package com.example.gradproject.service;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -20,6 +13,12 @@ import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 
@@ -42,23 +41,6 @@ public class S3Service {
     @Value("${aws.region}")
     private String region;
 
-    /**
-     * Upload a single file to S3
-     *
-     * @param file   The file to upload
-     * @param folder The folder path in the bucket (e.g., "images/", "documents/")
-     * @return The URL of the uploaded file
-     *         =======
-     *         <p>
-     *         public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
-     *         this.s3Client = s3Client;
-     *         this.s3Presigner = s3Presigner;
-     *         }
-     *         <p>
-     *         /**
-     *         Upload a single file to S3 (private)
-     *         >>>>>>> 8aec368660db7e78a34e368058bf3ebc94255e3b
-     */
     public String uploadFile(MultipartFile file, String folder) {
         try {
             String fileName = generateFileName(file.getOriginalFilename());
@@ -85,16 +67,6 @@ public class S3Service {
         }
     }
 
-    /**
-     * Upload multiple files to S3
-     * <<<<<<< HEAD
-     *
-     * @param files  The files to upload
-     * @param folder The folder path in the bucket
-     * @return List of uploaded file URLs
-     *         =======
-     *         >>>>>>> 8aec368660db7e78a34e368058bf3ebc94255e3b
-     */
     public List<String> uploadFiles(MultipartFile[] files, String folder) {
         List<String> urls = new ArrayList<>();
         for (MultipartFile file : files) {
@@ -129,14 +101,6 @@ public class S3Service {
         }
     }
 
-    /**
-     * Delete a file from S3
-     * <<<<<<< HEAD
-     *
-     * @param fileUrl The URL of the file to delete
-     *                =======
-     *                >>>>>>> 8aec368660db7e78a34e368058bf3ebc94255e3b
-     */
     public void deleteFile(String fileUrl) {
         try {
             String key = extractKeyFromUrl(fileUrl);
