@@ -1,34 +1,46 @@
 package com.example.gradproject.service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class S3Service {
 
     private static final Logger logger = LoggerFactory.getLogger(S3Service.class);
 
-    @Autowired
     private S3Client s3Client;
+
+    private S3Presigner s3Presigner;
+
+    public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
+        this.s3Presigner = s3Presigner;
+        this.s3Client = s3Client;
+    }
 
     @Value("${aws.s3.bucketName}")
     private String bucketName;
 
+    @Value("${aws.region}")
+    private String region;
+
     /**
      * Upload a single file to S3
-     * 
+     *
      * @param file   The file to upload
      * @param folder The folder path in the bucket (e.g., "images/", "documents/")
      * @return The URL of the uploaded file
@@ -46,8 +58,8 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s",
-                    bucketName, s3Client.serviceName().toString(), key);
+            // Generate pre-signed URL (valid for 7 days)
+            String fileUrl = generatePresignedUrl(key, Duration.ofDays(7));
 
             logger.info("File uploaded successfully to S3: {}", fileUrl);
             return fileUrl;
@@ -58,9 +70,25 @@ public class S3Service {
         }
     }
 
+    public String generatePresignedUrl(String key, Duration duration) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(duration)
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+
+        return presignedRequest.url().toString();
+    }
+
     /**
      * Upload multiple files to S3
-     * 
+     *
      * @param files  The files to upload
      * @param folder The folder path in the bucket
      * @return List of uploaded file URLs
@@ -78,7 +106,7 @@ public class S3Service {
 
     /**
      * Delete a file from S3
-     * 
+     *
      * @param fileUrl The URL of the file to delete
      */
     public void deleteFile(String fileUrl) {
