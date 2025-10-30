@@ -49,12 +49,15 @@ public class EmailService {
         logger.info("From Email: {}", fromEmail);
         logger.info("From Name: {}", fromName);
     }
-
+ // there is a small change here
     public void sendPasswordResetEmail(String toEmail, String firstName, String resetToken) {
         try {
             logger.debug("Sending password reset email to: {}", toEmail);
+            // from this
+            //String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+            // to
+            String resetLink = frontendUrl + "/reset-password.html?token=" + resetToken;
 
-            String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
             String htmlContent = createPasswordResetEmailTemplate(firstName, resetLink);
 
             MimeMessage message = javaMailSender.createMimeMessage();

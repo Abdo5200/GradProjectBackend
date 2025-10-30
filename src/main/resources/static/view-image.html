@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>View Uploaded Image</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<h2>Uploaded Image</h2>
+
+<div id="imageContainer">
+  <img id="displayedImage" style="max-width: 400px; display: none;">
+</div>
+
+<p id="message"></p>
+
+<button onclick="window.location.href='upload.html'">⬅ Back to Upload</button>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const imgUrl = localStorage.getItem("uploadedImageUrl");
+    const imgEl = document.getElementById("displayedImage");
+    const messageEl = document.getElementById("message");
+
+    if (imgUrl) {
+      imgEl.src = imgUrl;
+      imgEl.style.display = "block";
+      messageEl.textContent = "✅ Image loaded successfully.";
+      messageEl.style.color = "green";
+    } else {
+      messageEl.textContent = "⚠️ No image found. Please upload one first.";
+      messageEl.style.color = "red";
+    }
+  });
+</script>
+</body>
+</html>

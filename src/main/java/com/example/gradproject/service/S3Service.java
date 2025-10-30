@@ -1,31 +1,35 @@
 package com.example.gradproject.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+
 @Service
+
 public class S3Service {
 
     private static final Logger logger = LoggerFactory.getLogger(S3Service.class);
 
-    private S3Client s3Client;
+    private final S3Client s3Client;
 
-    private S3Presigner s3Presigner;
+    private final S3Presigner s3Presigner;
 
     public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
         this.s3Presigner = s3Presigner;
@@ -44,29 +48,108 @@ public class S3Service {
      * @param file   The file to upload
      * @param folder The folder path in the bucket (e.g., "images/", "documents/")
      * @return The URL of the uploaded file
+     *         =======
+     *         <p>
+     *         public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
+     *         this.s3Client = s3Client;
+     *         this.s3Presigner = s3Presigner;
+     *         }
+     *         <p>
+     *         /**
+     *         Upload a single file to S3 (private)
+     *         >>>>>>> 8aec368660db7e78a34e368058bf3ebc94255e3b
      */
     public String uploadFile(MultipartFile file, String folder) {
         try {
             String fileName = generateFileName(file.getOriginalFilename());
-            String key = folder != null && !folder.isEmpty() ? folder + fileName : fileName;
+            String key = (folder != null && !folder.isEmpty()) ? folder + fileName : fileName;
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
+                    .acl(ObjectCannedACL.PRIVATE)
                     .contentType(file.getContentType())
                     .build();
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            // Generate pre-signed URL (valid for 7 days)
-            String fileUrl = generatePresignedUrl(key, Duration.ofDays(7));
+            // ✅ Generate temporary presigned URL for private access
+            String presignedUrl = generatePresignedUrl(key, Duration.ofMinutes(60));
+            logger.info("File uploaded successfully to S3: {}", presignedUrl);
 
-            logger.info("File uploaded successfully to S3: {}", fileUrl);
-            return fileUrl;
+            return presignedUrl;
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Error uploading file to S3", e);
             throw new RuntimeException("Error uploading file to S3: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Upload multiple files to S3
+     * <<<<<<< HEAD
+     *
+     * @param files  The files to upload
+     * @param folder The folder path in the bucket
+     * @return List of uploaded file URLs
+     *         =======
+     *         >>>>>>> 8aec368660db7e78a34e368058bf3ebc94255e3b
+     */
+    public List<String> uploadFiles(MultipartFile[] files, String folder) {
+        List<String> urls = new ArrayList<>();
+        for (MultipartFile file : files) {
+            urls.add(uploadFile(file, folder));
+        }
+        return urls;
+    }
+
+    /**
+     * Uploads file to S3 and returns its S3 key (not a presigned URL)
+     */
+    public String uploadFileAndReturnKey(MultipartFile file, String folder) {
+        try {
+            String fileName = generateFileName(file.getOriginalFilename());
+            String key = (folder != null && !folder.isEmpty()) ? folder + fileName : fileName;
+
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .acl(ObjectCannedACL.PRIVATE)
+                    .contentType(file.getContentType())
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+            logger.info("✅ File uploaded successfully to S3: {}", key);
+            return key; // return the S3 object key
+
+        } catch (IOException e) {
+            logger.error("❌ Error uploading file to S3", e);
+            throw new RuntimeException("Error uploading file to S3: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete a file from S3
+     * <<<<<<< HEAD
+     *
+     * @param fileUrl The URL of the file to delete
+     *                =======
+     *                >>>>>>> 8aec368660db7e78a34e368058bf3ebc94255e3b
+     */
+    public void deleteFile(String fileUrl) {
+        try {
+            String key = extractKeyFromUrl(fileUrl);
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+
+            logger.info("File deleted successfully from S3: {}", key);
+
+        } catch (Exception e) {
+            logger.error("Error deleting file from S3", e);
+            throw new RuntimeException("Error deleting file from S3: " + e.getMessage());
         }
     }
 
@@ -81,68 +164,19 @@ public class S3Service {
                 .getObjectRequest(getObjectRequest)
                 .build();
 
-        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-
-        return presignedRequest.url().toString();
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
-    /**
-     * Upload multiple files to S3
-     *
-     * @param files  The files to upload
-     * @param folder The folder path in the bucket
-     * @return List of uploaded file URLs
-     */
-    public List<String> uploadFiles(MultipartFile[] files, String folder) {
-        List<String> urls = new ArrayList<>();
-
-        for (MultipartFile file : files) {
-            String url = uploadFile(file, folder);
-            urls.add(url);
-        }
-
-        return urls;
-    }
-
-    /**
-     * Delete a file from S3
-     *
-     * @param fileUrl The URL of the file to delete
-     */
-    public void deleteFile(String fileUrl) {
-        try {
-            // Extract key from URL
-            String key = extractKeyFromUrl(fileUrl);
-
-            s3Client.deleteObject(builder -> builder.bucket(bucketName)
-                    .key(key)
-                    .build());
-
-            logger.info("File deleted successfully from S3: {}", key);
-
-        } catch (Exception e) {
-            logger.error("Error deleting file from S3", e);
-            throw new RuntimeException("Error deleting file from S3: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Generate a unique file name
-     */
     private String generateFileName(String originalFilename) {
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
-        return UUID.randomUUID().toString() + extension;
+        return UUID.randomUUID() + extension;
     }
 
-    /**
-     * Extract S3 key from URL
-     */
     private String extractKeyFromUrl(String fileUrl) {
-        // Extract key from URL like: https://bucketname.s3.region.amazonaws.com/key
         String[] parts = fileUrl.split(".amazonaws.com/");
-        return parts.length > 1 ? parts[1] : "";
+        return parts.length > 1 ? parts[1].split("\\?")[0] : "";
     }
 }

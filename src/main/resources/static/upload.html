@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Image</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<h2>Upload Image</h2>
+
+<input type="file" id="fileInput" accept="image/*"><br><br>
+<button id="uploadBtn">Upload</button>
+<button id="showPhotosBtn">Show My Photos</button>
+
+<p id="message"></p>
+<img id="uploadedImage" width="200" style="display:none;">
+
+<script>
+  // Redirect to the showall.html page
+  document.getElementById("showPhotosBtn").addEventListener("click", function() {
+    window.location.href = "showall.html";
+  });
+</script>
+
+<script src="js/upload.js"></script>
+</body>
+</html>
