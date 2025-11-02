@@ -5,14 +5,17 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
@@ -54,6 +57,13 @@ public class JwtUtil {
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+        
+        // Add authorities/roles to claims
+        List<String> authorities = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        claims.put("roles", authorities);
+        
         return createToken(claims, userDetails.getUsername());
     }
 
@@ -80,5 +90,21 @@ public class JwtUtil {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        final Claims claims = extractAllClaims(token);
+        Object rolesClaim = claims.get("roles");
+        
+        if (rolesClaim instanceof List) {
+            return (List<String>) rolesClaim;
+        }
+        return List.of(); // Return empty list if no roles found
+    }
+
+    public String extractFirstRole(String token) {
+        List<String> roles = extractRoles(token);
+        return roles.isEmpty() ? null : roles.get(0);
     }
 }
