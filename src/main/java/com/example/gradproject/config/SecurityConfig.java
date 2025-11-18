@@ -1,13 +1,9 @@
 package com.example.gradproject.config;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -25,7 +21,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -56,6 +53,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
+
     // the first one -->>
 /*
     @Bean
@@ -111,7 +109,12 @@ public class SecurityConfig {
 
                                 // ✅ Public endpoints for viewing files/images
                                 "/api/files/view/**",
-                                "/api/files/public/**"
+                                "/api/files/public/**",
+                                "/v3/api-docs/**",
+                                "swagger-ui.html",
+                                "swagger-ui/**",
+                                "/v3/api-docs.yaml",
+                                "/swagger-resources/**"  // safe to include
                         ).permitAll()
 
                         // Secure API endpoints (JWT required)

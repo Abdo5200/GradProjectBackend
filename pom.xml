@@ -99,6 +99,15 @@
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- Redis Cache Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
@@ -111,6 +120,14 @@
             <artifactId>s3</artifactId>
             <version>2.20.26</version>
         </dependency>
+        <!-- use the starter that includes Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.8.14</version> <!-- pick the latest 2.x stable -->
+        </dependency>
+
+
     </dependencies>
 
     <build>

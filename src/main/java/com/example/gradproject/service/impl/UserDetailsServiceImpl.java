@@ -1,7 +1,8 @@
 package com.example.gradproject.service.impl;
 
-import com.example.gradproject.Repository.UserRepo;
-import com.example.gradproject.entity.User;
+import java.util.Collections;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,8 +10,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
+import com.example.gradproject.Repository.UserRepo;
+import com.example.gradproject.entity.User;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -23,7 +24,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        // Convert user role to Spring Security authority format (ROLE_USER, ROLE_ADMIN, etc.)
+        // Convert user role to Spring Security authority format (ROLE_USER, ROLE_ADMIN,
+        // etc.)
         String authority = "ROLE_" + user.getRole().name();
         List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(authority));
 
