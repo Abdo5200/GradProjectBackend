@@ -25,7 +25,9 @@ import com.example.gradproject.service.AuthService;
 import com.example.gradproject.service.UserService;
 import com.example.gradproject.service.impl.PasswordResetService;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController()
@@ -55,33 +57,78 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> postLogin(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> postLogin(@Valid @RequestBody LoginRequest loginRequest,
+            HttpServletResponse response) {
         LoginResponse loginResponse = userService.authenticateUser(loginRequest);
-        if (loginResponse.isSuccess())
+        if (loginResponse.isSuccess()) {
+            // Set refresh token as HttpOnly cookie
+            Cookie cookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
+            cookie.setHttpOnly(true);
+            cookie.setSecure(false); // Set to true in production (HTTPS)
+            cookie.setPath("/");
+            cookie.setMaxAge(30 * 24 * 60 * 60); // 30 days
+            response.addCookie(cookie);
+
+            // Remove refresh token from response body
+            loginResponse.setRefreshToken(null);
+
             return ResponseEntity.ok(loginResponse);
-        else
+        } else {
             return ResponseEntity.badRequest().body(loginResponse);
+        }
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request, HttpServletResponse response) {
         try {
+            // Clear refresh token cookie
+            Cookie cookie = new Cookie("refreshToken", null);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(false);
+            cookie.setPath("/");
+            cookie.setMaxAge(0);
+            response.addCookie(cookie);
+
             String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                Map<String, String> response = authService.logout(token);
-                return ResponseEntity.ok(response);
+                Map<String, String> logoutResponse = authService.logout(token);
+                return ResponseEntity.ok(logoutResponse);
             }
 
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Logout successful");
-            return ResponseEntity.ok(response);
+            Map<String, String> responseMap = new HashMap<>();
+            responseMap.put("message", "Logout successful");
+            return ResponseEntity.ok(responseMap);
         } catch (Exception e) {
             logger.error("Error during logout", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error during logout: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<Map<String, String>> refreshToken(HttpServletRequest request) {
+        String refreshToken = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Refresh token is missing"));
+        }
+
+        Map<String, String> response = authService.refreshToken(refreshToken);
+        if (response.containsKey("error")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/forgot-password")

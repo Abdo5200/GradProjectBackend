@@ -28,6 +28,15 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration;
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        System.out.println("JWT Expiration: " + expiration);
+        System.out.println("JWT Refresh Expiration: " + refreshExpiration);
+    }
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
@@ -76,6 +85,15 @@ public class JwtUtil {
                 .subject(subject)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .subject(userDetails.getUsername())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }

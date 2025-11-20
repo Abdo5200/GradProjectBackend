@@ -4,8 +4,10 @@ import com.example.gradproject.DTO.LoginRequest;
 import com.example.gradproject.DTO.LoginResponse;
 import com.example.gradproject.DTO.SignupRequest;
 import com.example.gradproject.DTO.SignupResponse;
+import com.example.gradproject.Repository.RefreshTokenRepository;
 import com.example.gradproject.Repository.UserRepo;
 import com.example.gradproject.config.JwtUtil;
+import com.example.gradproject.entity.RefreshToken;
 import com.example.gradproject.entity.User;
 import com.example.gradproject.exception.UserNotFoundException;
 import com.example.gradproject.service.UserService;
@@ -26,14 +28,17 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
     public UserServiceImpl(UserRepo userRepo, PasswordEncoder passwordEncoder,
-                           AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
+            AuthenticationManager authenticationManager, JwtUtil jwtUtil,
+            RefreshTokenRepository refreshTokenRepository) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     @Override
@@ -80,11 +85,18 @@ public class UserServiceImpl implements UserService {
 
             // Generate JWT token
             String token = jwtUtil.generateToken(userDetails);
+            String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+
+            RefreshToken refreshTokenEntity = new RefreshToken();
+            refreshTokenEntity.setToken(refreshToken);
+            refreshTokenEntity.setUsername(userDetails.getUsername());
+            refreshTokenEntity.setExpiryDate(jwtUtil.extractExpiration(refreshToken));
+            refreshTokenRepository.save(refreshTokenEntity);
 
             // Get user details
             Optional<User> optionalUser = userRepo.findByEmail(loginRequest.getEmail());
             if (optionalUser.isEmpty()) {
-                return new LoginResponse("User not found", false, null, null);
+                return new LoginResponse("User not found", false, null, null, null);
             }
 
             User user = optionalUser.get();
@@ -92,12 +104,13 @@ public class UserServiceImpl implements UserService {
                     user.getId(),
                     user.getFirstName(),
                     user.getLastName(),
-                    user.getEmail());
+                    user.getEmail(),
+                    user.getRole());
 
-            return new LoginResponse("Login successful", true, token, userInfo);
+            return new LoginResponse("Login successful", true, token, refreshToken, userInfo);
 
         } catch (Exception e) {
-            return new LoginResponse("Invalid email or password", false, null, null);
+            return new LoginResponse("Invalid email or password", false, null, null, null);
         }
     }
 }
