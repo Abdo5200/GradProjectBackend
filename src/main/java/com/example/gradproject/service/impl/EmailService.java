@@ -56,7 +56,7 @@ public class EmailService {
             // from this
             //String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
             // to
-            String resetLink = frontendUrl + "/reset-password.html?token=" + resetToken;
+            String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 
             String htmlContent = createPasswordResetEmailTemplate(firstName, resetLink);
 
