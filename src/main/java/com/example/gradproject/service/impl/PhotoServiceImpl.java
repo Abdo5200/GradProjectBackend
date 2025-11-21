@@ -49,7 +49,7 @@ public class PhotoServiceImpl implements PhotoService {
 
             Map<String, String> response = new HashMap<>();
             response.put("url", presignedUrl);
-            response.put("message", "✅ File uploaded and saved successfully!");
+            response.put("message", "File uploaded and saved successfully!");
 
             return response;
 

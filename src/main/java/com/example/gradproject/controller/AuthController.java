@@ -49,6 +49,7 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> postSignUp(@Valid @RequestBody SignupRequest signupRequest) {
+        logger.info("Recieved Signup Request");
         SignupResponse signupResponse = userService.registerUser(signupRequest);
         if (signupResponse.isSuccess())
             return ResponseEntity.ok(signupResponse);

@@ -27,7 +27,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    @Value("${frontend.url}")
+    @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
     @Autowired
@@ -43,8 +43,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -54,29 +53,6 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // the first one -->>
-    /*
-     * @Bean
-     * public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity)
-     * throws Exception {
-     * httpSecurity
-     * .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-     * .csrf(AbstractHttpConfigurer::disable)
-     * .authorizeHttpRequests(auth -> auth
-     * .requestMatchers("/auth/**")
-     * .permitAll()
-     * .requestMatchers("/api/files/**")
-     * .authenticated()
-     * .anyRequest()
-     * .authenticated())
-     * .sessionManagement(session -> session
-     * .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-     * .authenticationProvider(authenticationProvider())
-     * .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-     * return httpSecurity.build();
-     * }
-     */
-    // for test
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
@@ -88,7 +64,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public pages (accessible without login)
                         .requestMatchers(
-                                // ✅ Public authentication APIs
+                                // Public authentication APIs
                                 "/auth/signup",
                                 "/auth/login",
                                 "/auth/forgot-password",
@@ -123,7 +99,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // allow the frontend only to send requests
-        configuration.setAllowedOriginPatterns(Arrays.asList(frontendUrl));
+        // allow the frontend only to send requests
+        configuration.setAllowedOrigins(Arrays.asList(frontendUrl));
 
         // allow the frontend requests
         configuration.setAllowedMethods(Arrays.asList(

@@ -58,7 +58,7 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            // ✅ Generate temporary presigned URL for private access
+            // Generate temporary presigned URL for private access
             String presignedUrl = generatePresignedUrl(key, Duration.ofMinutes(60));
             logger.info("File uploaded successfully to S3: {}", presignedUrl);
 
@@ -95,11 +95,11 @@ public class S3Service {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            logger.info("✅ File uploaded successfully to S3: {}", key);
+            logger.info("File uploaded successfully to S3: {}", key);
             return key; // return the S3 object key
 
         } catch (IOException e) {
-            logger.error("❌ Error uploading file to S3", e);
+            logger.error("Error uploading file to S3", e);
             throw new RuntimeException("Error uploading file to S3: " + e.getMessage());
         }
     }
@@ -134,7 +134,7 @@ public class S3Service {
      */
     @Cacheable(cacheNames = "presignedUrls", key = "#key")
     public String generatePresignedUrl(String key, Duration duration) {
-        logger.info("🔄 Generating new presigned URL for key: {}", key);
+        logger.info("Generating new presigned URL for key: {}", key);
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)
@@ -147,7 +147,7 @@ public class S3Service {
                 .build();
 
         String url = s3Presigner.presignGetObject(presignRequest).url().toString();
-        logger.info("✅ Generated presigned URL (will be cached for 59min): {}", key);
+        logger.info("Generated presigned URL (will be cached for 59min): {}", key);
         return url;
     }
 

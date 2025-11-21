@@ -59,6 +59,10 @@ public class UserServiceImpl implements UserService {
             if (existedUser.isPresent()) {
                 return new SignupResponse("Email is already registered", false, null);
             }
+
+            if (!signupRequest.getPassword().equals(signupRequest.getConfirmPassword())) {
+                return new SignupResponse("Passwords do not match", false, null);
+            }
             User user = new User();
             user.setFirstName(signupRequest.getFirstName());
             user.setLastName(signupRequest.getLastName());
