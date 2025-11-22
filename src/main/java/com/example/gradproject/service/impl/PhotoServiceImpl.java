@@ -1,21 +1,20 @@
 package com.example.gradproject.service.impl;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.example.gradproject.Repository.PhotoRepository;
+import com.example.gradproject.entity.Image;
+import com.example.gradproject.entity.User;
+import com.example.gradproject.service.PhotoService;
+import com.example.gradproject.service.S3Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.gradproject.Repository.PhotoRepository;
-import com.example.gradproject.entity.Photo;
-import com.example.gradproject.entity.User;
-import com.example.gradproject.service.PhotoService;
-import com.example.gradproject.service.S3Service;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class PhotoServiceImpl implements PhotoService {
@@ -33,16 +32,16 @@ public class PhotoServiceImpl implements PhotoService {
     @Override
     @Transactional
     public Map<String, String> uploadPhoto(MultipartFile file, String folder,
-            User user) {
+                                           User user) {
         try {
             // Upload file and return its S3 key
             String s3Key = s3Service.uploadFileAndReturnKey(file, folder);
 
             // Save S3 key in DB
-            Photo photo = new Photo();
-            photo.setUrl(s3Key);
-            photo.setUser(user);
-            photoRepository.save(photo);
+            Image image = new Image();
+            image.setUrl(s3Key);
+            image.setUser(user);
+            photoRepository.save(image);
 
             // Return fresh presigned URL for immediate use
             String presignedUrl = s3Service.generatePresignedUrl(s3Key, Duration.ofMinutes(60));
@@ -64,12 +63,12 @@ public class PhotoServiceImpl implements PhotoService {
     public Map<String, Object> getUserPhotos(User user, Duration urlDuration) {
         try {
             // Get user's photos
-            List<Photo> photos = user.getPhotos();
+            List<Image> images = user.getImages();
 
             // Convert to list of refreshed presigned URLs
-            List<Map<String, String>> photoData = photos.stream()
-                    .map(photo -> {
-                        String oldUrl = photo.getUrl();
+            List<Map<String, String>> photoData = images.stream()
+                    .map(image -> {
+                        String oldUrl = image.getUrl();
                         String key = extractKeyFromUrl(oldUrl);
                         String newUrl = s3Service.generatePresignedUrl(key, urlDuration);
 

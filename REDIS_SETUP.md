@@ -2,7 +2,8 @@
 
 ## Overview
 
-This project now uses Redis to cache S3 presigned URLs for 59 minutes, preventing redundant AWS API calls when requesting the same image within that timeframe.
+This project now uses Redis to cache S3 presigned URLs for 59 minutes, preventing redundant AWS API calls when
+requesting the same image within that timeframe.
 
 ## What Was Implemented
 
@@ -52,8 +53,8 @@ spring.data.redis.timeout=60000
 
 **Get My Photos Flow:**
 
-1. User requests `/api/files/my-photos`
-2. For each photo key, `generatePresignedUrl(key)` is called
+1. User requests `/api/files/my-images`
+2. For each image key, `generatePresignedUrl(key)` is called
 3. **Cached keys** → return instantly
 4. **New keys** → generate once and cache
 
@@ -145,7 +146,7 @@ docker exec -it redis redis-cli
 1. **Performance**: No AWS API calls for cached URLs (sub-millisecond response)
 2. **Cost**: Reduces AWS S3 API request costs
 3. **Scalability**: Distributed cache works across multiple app instances
-4. **User Experience**: Faster image loading in `/my-photos` endpoint
+4. **User Experience**: Faster image loading in `/my-images` endpoint
 
 ## Cache Behavior
 
@@ -180,7 +181,7 @@ docker exec -it redis redis-cli FLUSHALL
 ## Environment Variables
 
 | Variable         | Default   | Description              |
-| ---------------- | --------- | ------------------------ |
+|------------------|-----------|--------------------------|
 | `REDIS_HOST`     | localhost | Redis server hostname    |
 | `REDIS_PORT`     | 6379      | Redis server port        |
 | `REDIS_PASSWORD` | (none)    | Redis password if needed |

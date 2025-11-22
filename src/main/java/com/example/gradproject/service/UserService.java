@@ -1,7 +1,11 @@
 package com.example.gradproject.service;
 
+import com.example.gradproject.DTO.ForgotPasswordRequest;
+import com.example.gradproject.DTO.ForgotPasswordResponse;
 import com.example.gradproject.DTO.LoginRequest;
 import com.example.gradproject.DTO.LoginResponse;
+import com.example.gradproject.DTO.ResetPasswordRequest;
+import com.example.gradproject.DTO.ResetPasswordResponse;
 import com.example.gradproject.DTO.SignupRequest;
 import com.example.gradproject.DTO.SignupResponse;
 import com.example.gradproject.entity.User;
@@ -13,4 +17,8 @@ public interface UserService {
     SignupResponse registerUser(SignupRequest signupRequest);
 
     LoginResponse authenticateUser(LoginRequest loginRequest);
+
+    ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request);
+
+    ResetPasswordResponse resetPassword(ResetPasswordRequest request);
 }

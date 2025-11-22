@@ -1,6 +1,8 @@
 package com.example.gradproject.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,20 +23,19 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final UserDetailsService userDetailsService;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, UserDetailsService userDetailsService) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -67,6 +68,7 @@ public class SecurityConfig {
                                 // Public authentication APIs
                                 "/auth/signup",
                                 "/auth/login",
+                                "/auth/refresh-token",
                                 "/auth/forgot-password",
                                 "/auth/reset-password",
                                 "/v3/api-docs/**",

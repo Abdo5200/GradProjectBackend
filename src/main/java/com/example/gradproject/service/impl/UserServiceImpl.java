@@ -1,7 +1,23 @@
 package com.example.gradproject.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.logging.Logger;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.example.gradproject.DTO.ForgotPasswordRequest;
+import com.example.gradproject.DTO.ForgotPasswordResponse;
 import com.example.gradproject.DTO.LoginRequest;
 import com.example.gradproject.DTO.LoginResponse;
+import com.example.gradproject.DTO.ResetPasswordRequest;
+import com.example.gradproject.DTO.ResetPasswordResponse;
 import com.example.gradproject.DTO.SignupRequest;
 import com.example.gradproject.DTO.SignupResponse;
 import com.example.gradproject.Repository.RefreshTokenRepository;
@@ -10,35 +26,39 @@ import com.example.gradproject.config.JwtUtil;
 import com.example.gradproject.entity.RefreshToken;
 import com.example.gradproject.entity.User;
 import com.example.gradproject.exception.UserNotFoundException;
+import com.example.gradproject.mappers.SignupRequestUserMapper;
+import com.example.gradproject.mappers.UserLoginResponseUserInfoMapper;
 import com.example.gradproject.service.UserService;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import jakarta.transaction.Transactional;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepo userRepo;
-    private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final SignupRequestUserMapper signupRequestUserMapper;
+    private final UserLoginResponseUserInfoMapper userLoginResponseUserInfoMapper;
+    private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
+    private final Logger logger = Logger.getLogger(UserServiceImpl.class.getName());
 
-    @Autowired
-    public UserServiceImpl(UserRepo userRepo, PasswordEncoder passwordEncoder,
+    public UserServiceImpl(UserRepo userRepo,
             AuthenticationManager authenticationManager, JwtUtil jwtUtil,
-            RefreshTokenRepository refreshTokenRepository) {
+            RefreshTokenRepository refreshTokenRepository,
+            SignupRequestUserMapper signupRequestUserMapper,
+            UserLoginResponseUserInfoMapper userLoginResponseUserInfoMapper,
+            EmailService emailService,
+            PasswordEncoder passwordEncoder) {
         this.userRepo = userRepo;
-        this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.signupRequestUserMapper = signupRequestUserMapper;
+        this.userLoginResponseUserInfoMapper = userLoginResponseUserInfoMapper;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -63,12 +83,7 @@ public class UserServiceImpl implements UserService {
             if (!signupRequest.getPassword().equals(signupRequest.getConfirmPassword())) {
                 return new SignupResponse("Passwords do not match", false, null);
             }
-            User user = new User();
-            user.setFirstName(signupRequest.getFirstName());
-            user.setLastName(signupRequest.getLastName());
-            user.setEmail(signupRequest.getEmail());
-            user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
-            user.setRole(signupRequest.getRole());
+            User user = signupRequestUserMapper.SignupRequestToUser(signupRequest);
             User savedUser = userRepo.save(user);
             return new SignupResponse("User registered Successfully", true, savedUser.getId());
 
@@ -104,17 +119,78 @@ public class UserServiceImpl implements UserService {
             }
 
             User user = optionalUser.get();
-            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(
-                    user.getId(),
-                    user.getFirstName(),
-                    user.getLastName(),
-                    user.getEmail(),
-                    user.getRole());
-
+            LoginResponse.UserInfo userInfo = userLoginResponseUserInfoMapper.UserToUserInfoMapper(user);
             return new LoginResponse("Login successful", true, token, refreshToken, userInfo);
 
         } catch (Exception e) {
             return new LoginResponse("Invalid email or password", false, null, null, null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
+        try {
+            Optional<User> optionalUser = userRepo.findByEmail(request.getEmail());
+
+            if (optionalUser.isEmpty()) {
+                return new ForgotPasswordResponse(
+                        "This Email is not registered",
+                        false);
+            }
+
+            User user = optionalUser.get();
+
+            String resetToken = UUID.randomUUID().toString();
+            user.setResetToken(resetToken);
+            user.setResetTokenExpiry(LocalDateTime.now().plusHours(1)); // 1 hour expiry
+
+            userRepo.save(user);
+
+            emailService.sendPasswordResetEmail(
+                    user.getEmail(),
+                    user.getFirstName(),
+                    resetToken);
+
+            return new ForgotPasswordResponse(
+                    "If your email is registered, you will receive a password reset link.",
+                    true);
+
+        } catch (Exception e) {
+            return new ForgotPasswordResponse(
+                    "An error occurred while processing your request.",
+                    false);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResetPasswordResponse resetPassword(ResetPasswordRequest request) {
+        try {
+            Optional<User> optionalUser = userRepo.findByResetToken(request.getToken());
+
+            if (optionalUser.isEmpty()) {
+                return new ResetPasswordResponse("Invalid reset token.", false);
+            }
+
+            User user = optionalUser.get();
+
+            if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+                return new ResetPasswordResponse("Reset token has expired.", false);
+            }
+
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            user.setResetToken(null);
+            user.setResetTokenExpiry(null);
+
+            userRepo.save(user);
+
+            return new ResetPasswordResponse("Password reset successfully.", true);
+
+        } catch (Exception e) {
+            return new ResetPasswordResponse(
+                    "An error occurred while resetting your password.",
+                    false);
         }
     }
 }

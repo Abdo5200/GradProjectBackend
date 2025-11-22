@@ -3,7 +3,6 @@ package com.example.gradproject.service.impl;
 import java.util.Collections;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -16,8 +15,11 @@ import com.example.gradproject.entity.User;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    @Autowired
-    private UserRepo userRepo;
+    private final UserRepo userRepo;
+
+    public UserDetailsServiceImpl(UserRepo userRepo) {
+        this.userRepo = userRepo;
+    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {

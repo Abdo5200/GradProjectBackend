@@ -2,7 +2,6 @@ package com.example.gradproject.service.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -33,7 +32,6 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String gmailUsername;
 
-    @Autowired
     public EmailService(JavaMailSender javaMailSender) {
         this.javaMailSender = javaMailSender;
     }
@@ -49,12 +47,13 @@ public class EmailService {
         logger.info("From Email: {}", fromEmail);
         logger.info("From Name: {}", fromName);
     }
- // there is a small change here
+
+    // there is a small change here
     public void sendPasswordResetEmail(String toEmail, String firstName, String resetToken) {
         try {
             logger.debug("Sending password reset email to: {}", toEmail);
             // from this
-            //String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+            // String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
             // to
             String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 
@@ -65,7 +64,7 @@ public class EmailService {
 
             helper.setFrom(fromEmail, fromName);
             helper.setTo(toEmail);
-            helper.setSubject("Reset Your Password - Todo App");
+            helper.setSubject("Reset Your Password - XFed NeuroScan");
             helper.setText(htmlContent, true); // true indicates HTML content
 
             javaMailSender.send(message);

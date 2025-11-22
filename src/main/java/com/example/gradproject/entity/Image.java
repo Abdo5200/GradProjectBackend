@@ -6,17 +6,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "photo")
+@Table(name = "image")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Photo {
+public class Image {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "url",columnDefinition = "TEXT", nullable = false)
+    @Column(name = "url", columnDefinition = "TEXT", nullable = false)
     private String url;
 
     // Many photos belong to one user

@@ -62,6 +62,16 @@ public class AuthServiceImpl implements AuthService {
                 return response;
             }
 
+            // Additional check: Verify stored token hasn't expired
+            RefreshToken tokenEntity = storedToken.get();
+            if (tokenEntity.getExpiryDate() != null && 
+                tokenEntity.getExpiryDate().before(new java.util.Date())) {
+                // Token expired, remove it from Redis
+                refreshTokenRepository.deleteByToken(refreshToken);
+                response.put("error", "Refresh token has expired");
+                return response;
+            }
+
             // Get user details
             String username = jwtUtil.extractUsername(refreshToken);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);

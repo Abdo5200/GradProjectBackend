@@ -43,7 +43,7 @@
             height: 200px;
             object-fit: cover;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transition: transform 0.2s ease;
         }
 
@@ -72,37 +72,37 @@
         const message = document.getElementById("message");
 
         if (!token) {
-            message.textContent = "You must be logged in to view your photos.";
+            message.textContent = "You must be logged in to view your images.";
             return;
         }
 
         try {
-            const response = await fetch("http://localhost:8080/api/files/my-photos", {
+            const response = await fetch("http://localhost:8080/api/files/my-images", {
                 headers: {
                     "Authorization": "Bearer " + token
                 }
             });
 
             if (!response.ok) {
-                throw new Error("Failed to fetch photos");
+                throw new Error("Failed to fetch images");
             }
 
             const data = await response.json();
 
             gallery.innerHTML = "";
 
-            if (data.photos && data.photos.length > 0) {
-                data.photos.forEach(photo => {
+            if (data.images && data.images.length > 0) {
+                data.images.forEach(image => {
                     const img = document.createElement("img");
-                    img.src = photo.url; // ✅ fixed here
+                    img.src = image.url; // ✅ fixed here
                     gallery.appendChild(img);
                 });
             } else {
-                message.textContent = "You have not uploaded any photos yet.";
+                message.textContent = "You have not uploaded any images yet.";
             }
 
         } catch (error) {
-            message.textContent = "Error loading photos: " + error.message;
+            message.textContent = "Error loading images: " + error.message;
         }
     }
 
