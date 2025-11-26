@@ -1,6 +1,8 @@
 package com.example.gradproject.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -84,6 +86,7 @@ public class UserServiceImpl implements UserService {
                 return new SignupResponse("Passwords do not match", false, null);
             }
             User user = signupRequestUserMapper.SignupRequestToUser(signupRequest);
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
             User savedUser = userRepo.save(user);
             return new SignupResponse("User registered Successfully", true, savedUser.getId());
 
@@ -101,16 +104,41 @@ public class UserServiceImpl implements UserService {
                     new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String username = userDetails.getUsername();
 
-            // Generate JWT token
+            // 🔒 SECURITY: Check for existing valid tokens and revoke them
+            List<RefreshToken> existingTokens = refreshTokenRepository.findByUsername(username);
+            if (!existingTokens.isEmpty()) {
+                Date now = new Date();
+                int revokedCount = 0;
+
+                for (RefreshToken existingToken : existingTokens) {
+                    // Check if token is still valid (not expired)
+                    if (existingToken.getExpiryDate() != null && existingToken.getExpiryDate().after(now)) {
+                        revokedCount++;
+                    }
+                    // Delete each token individually
+                    refreshTokenRepository.delete(existingToken);
+                }
+
+                if (revokedCount > 0) {
+                    logger.info(
+                            "🔒 Security: Revoked " + revokedCount + " existing valid token(s) for user: " + username);
+                }
+            }
+
+            // Generate new JWT tokens
             String token = jwtUtil.generateToken(userDetails);
             String refreshToken = jwtUtil.generateRefreshToken(userDetails);
 
+            // Save new refresh token to Redis
             RefreshToken refreshTokenEntity = new RefreshToken();
             refreshTokenEntity.setToken(refreshToken);
-            refreshTokenEntity.setUsername(userDetails.getUsername());
+            refreshTokenEntity.setUsername(username);
             refreshTokenEntity.setExpiryDate(jwtUtil.extractExpiration(refreshToken));
             refreshTokenRepository.save(refreshTokenEntity);
+
+            logger.info("✅ Issued new tokens for user: " + username);
 
             // Get user details
             Optional<User> optionalUser = userRepo.findByEmail(loginRequest.getEmail());
@@ -123,6 +151,7 @@ public class UserServiceImpl implements UserService {
             return new LoginResponse("Login successful", true, token, refreshToken, userInfo);
 
         } catch (Exception e) {
+            logger.warning("❌ Login failed for email: " + loginRequest.getEmail() + " - " + e.getMessage());
             return new LoginResponse("Invalid email or password", false, null, null, null);
         }
     }

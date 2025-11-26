@@ -1,17 +1,15 @@
 package com.example.gradproject.service.impl;
 
+import com.example.gradproject.exception.EmailServiceException;
+import jakarta.annotation.PostConstruct;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import com.example.gradproject.exception.EmailServiceException;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
@@ -135,7 +133,7 @@ public class EmailService {
                             <p style="word-break: break-all; color: #007bff;">%s</p>
                             <p><strong>This link will expire in 1 hour.</strong></p>
                             <p>If you didn't request this password reset, please ignore this email.</p>
-                            <p>Best regards,<br>Todo App Team</p>
+                            <p>Best regards,<br>XFed NeuroScan Team</p>
                         </div>
                         <div class="footer">
                             <p>This is an automated email. Please do not reply.</p>

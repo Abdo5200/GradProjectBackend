@@ -1,22 +1,23 @@
 package com.example.gradproject.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtUtil {
@@ -29,12 +30,6 @@ public class JwtUtil {
 
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
-
-    @PostConstruct
-    public void init() {
-        System.out.println("JWT Expiration: " + expiration);
-        System.out.println("JWT Refresh Expiration: " + refreshExpiration);
-    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
@@ -125,5 +120,9 @@ public class JwtUtil {
     public String extractFirstRole(String token) {
         List<String> roles = extractRoles(token);
         return roles.isEmpty() ? null : roles.get(0);
+    }
+
+    public long getRefreshExpiration() {
+        return refreshExpiration;
     }
 }
