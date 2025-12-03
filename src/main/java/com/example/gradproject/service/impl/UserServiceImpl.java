@@ -107,10 +107,9 @@ public class UserServiceImpl implements UserService {
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String username = userDetails.getUsername();
-
+            String oldRefreshToken = username + ":" + deviceId;
             // SECURITY: Delete existing refresh token for this device (if any)
-            Optional<RefreshToken> existingDeviceToken = refreshTokenRepository.findByUsernameAndDeviceId(username,
-                    deviceId);
+            Optional<RefreshToken> existingDeviceToken = refreshTokenRepository.findById(oldRefreshToken);
             if (existingDeviceToken.isPresent()) {
                 refreshTokenRepository.delete(existingDeviceToken.get());
                 logger.info("Replaced existing session for user: {} on device: {}", username, deviceId);

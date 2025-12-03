@@ -67,9 +67,8 @@ public class LogoutHandlerImpl implements LogoutHandler {
                     logger.info("Deleted refresh token for user: {} on device: {} (ID: {})", username, deviceId,
                             compositeId);
                 } else {
-                    // Fallback: delete all tokens if no device ID
-                    refreshTokenRepository.findByUsername(username).forEach(refreshTokenRepository::delete);
-                    logger.info("Deleted all refresh tokens for user: {}", username);
+                    // Fallback: Could not extract deviceId - log warning only
+                    logger.warn("Could not extract deviceId from refresh token for user: {} during logout", username);
                 }
 
                 // Blacklist the access token

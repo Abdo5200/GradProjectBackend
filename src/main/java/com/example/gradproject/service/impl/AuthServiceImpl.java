@@ -57,8 +57,13 @@ public class AuthServiceImpl implements AuthService {
                 return response;
             }
 
-            // Check if token exists in Redis
-            Optional<RefreshToken> storedToken = refreshTokenRepository.findByToken(refreshToken);
+            // Extract username from JWT to build composite key
+            String username = jwtUtil.extractUsername(refreshToken);
+
+            // Build composite key and check if token exists in Redis
+            String compositeId = username + ":" + deviceId;
+            Optional<RefreshToken> storedToken = refreshTokenRepository.findById(compositeId);
+
             if (storedToken.isEmpty()) {
                 response.put("error", "Refresh token not found or expired");
                 return response;
@@ -66,10 +71,10 @@ public class AuthServiceImpl implements AuthService {
 
             RefreshToken tokenEntity = storedToken.get();
 
-            // Verify device ID matches
-            if (!deviceId.equals(tokenEntity.getDeviceId())) {
-                response.put("error", "Device ID mismatch - security violation");
-                logger.warn("Security Alert: Device ID mismatch for user: {}", tokenEntity.getUsername());
+            // Verify the stored token matches the provided token
+            if (!refreshToken.equals(tokenEntity.getToken())) {
+                response.put("error", "Token mismatch - security violation");
+                logger.warn("Security Alert: Token mismatch for user: {} on device: {}", username, deviceId);
                 return response;
             }
 
@@ -77,13 +82,12 @@ public class AuthServiceImpl implements AuthService {
             if (tokenEntity.getExpiryDate() != null &&
                     tokenEntity.getExpiryDate().before(new java.util.Date())) {
                 // Token expired, remove it from Redis
-                refreshTokenRepository.deleteByToken(refreshToken);
+                refreshTokenRepository.deleteById(compositeId);
                 response.put("error", "Refresh token has expired");
                 return response;
             }
 
-            // Get user details
-            String username = jwtUtil.extractUsername(refreshToken);
+            // Get user details for generating new access token
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             // Generate new access token

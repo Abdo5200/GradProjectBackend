@@ -5,7 +5,6 @@ import java.util.Date;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
-import org.springframework.data.redis.core.index.Indexed;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,16 +18,12 @@ public class RefreshToken {
     @Id
     private String id; // Format: "username:deviceId"
 
-    @Indexed
-    private String token; // The actual refresh token UUID
+    private String token; // The actual refresh token JWT
 
-    @Indexed
-    private String username; // User's email
+    private String username; // User's email (no index needed - always use composite key)
 
-    @Indexed
     private String deviceId; // Random UUID for device identification
 
-    @Indexed
     private String accessTokenHash; // Hash of current access token for pairing
 
     private Date expiryDate;
