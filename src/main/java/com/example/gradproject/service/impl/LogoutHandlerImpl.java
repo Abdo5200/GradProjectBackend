@@ -64,12 +64,12 @@ public class LogoutHandlerImpl implements LogoutHandler {
                     // Use composite ID for direct deletion
                     String compositeId = username + ":" + deviceId;
                     refreshTokenRepository.deleteById(compositeId);
-                    logger.info("🔒 Deleted refresh token for user: {} on device: {} (ID: {})", username, deviceId,
+                    logger.info("Deleted refresh token for user: {} on device: {} (ID: {})", username, deviceId,
                             compositeId);
                 } else {
                     // Fallback: delete all tokens if no device ID
                     refreshTokenRepository.findByUsername(username).forEach(refreshTokenRepository::delete);
-                    logger.info("🔒 Deleted all refresh tokens for user: {}", username);
+                    logger.info("Deleted all refresh tokens for user: {}", username);
                 }
 
                 // Blacklist the access token

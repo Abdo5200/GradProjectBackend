@@ -16,4 +16,10 @@ public interface PhotoService {
     Map<String, String> viewPhoto(String key, Duration duration);
 
     Map<String, String> deletePhoto(String fileUrl);
+
+    /**
+     * Confirm upload completion after frontend uploads directly to S3.
+     * Saves the S3 key to the database.
+     */
+    Map<String, String> confirmUpload(String s3Key, User user);
 }

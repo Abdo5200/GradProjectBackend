@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @Service
 
@@ -128,7 +129,7 @@ public class S3Service {
     }
 
     /**
-     * Generate presigned URL with caching.
+     * Generate presigned URL for GET requests with caching.
      * Cache key is the S3 object key.
      * TTL is 59 minutes (configured in RedisCacheConfig).
      */
@@ -149,6 +150,48 @@ public class S3Service {
         String url = s3Presigner.presignGetObject(presignRequest).url().toString();
         logger.info("Generated presigned URL (will be cached for 59min): {}", key);
         return url;
+    }
+
+    /**
+     * Generate presigned PUT URL for direct uploads from frontend.
+     * This allows the frontend to upload directly to S3 without going through the backend.
+     * 
+     * Note: ACL is not included in the presigned URL to avoid signature mismatch issues.
+     * The bucket's default permissions will apply. If you need private objects, configure
+     * bucket policies or set ACLs via backend operations.
+     * 
+     * @param key S3 object key
+     * @param contentType Content type of the file (e.g., "image/jpeg")
+     * @param duration Duration for which the presigned URL is valid
+     * @return Presigned PUT URL
+     */
+    public String generatePresignedPutUrl(String key, String contentType, Duration duration) {
+        logger.info("Generating presigned PUT URL for key: {}, contentType: {}", key, contentType);
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                // Note: ACL removed to avoid signature mismatch - bucket default permissions apply
+                .build();
+
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(duration)
+                .putObjectRequest(putObjectRequest)
+                .build();
+
+        String url = s3Presigner.presignPutObject(presignRequest).url().toString();
+        logger.info("Generated presigned PUT URL for key: {}", key);
+        return url;
+    }
+
+    /**
+     * Generate a unique S3 key based on filename and folder.
+     * This is used to create a unique key before generating presigned URLs.
+     */
+    public String generateS3Key(String fileName, String folder) {
+        String generatedFileName = generateFileName(fileName);
+        return (folder != null && !folder.isEmpty()) ? folder + generatedFileName : generatedFileName;
     }
 
     private String generateFileName(String originalFilename) {

@@ -108,7 +108,7 @@ public class UserServiceImpl implements UserService {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String username = userDetails.getUsername();
 
-            // 🔒 SECURITY: Delete existing refresh token for this device (if any)
+            // SECURITY: Delete existing refresh token for this device (if any)
             Optional<RefreshToken> existingDeviceToken = refreshTokenRepository.findByUsernameAndDeviceId(username,
                     deviceId);
             if (existingDeviceToken.isPresent()) {

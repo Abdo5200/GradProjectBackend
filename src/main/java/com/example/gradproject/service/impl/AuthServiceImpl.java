@@ -69,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
             // Verify device ID matches
             if (!deviceId.equals(tokenEntity.getDeviceId())) {
                 response.put("error", "Device ID mismatch - security violation");
-                logger.warn("⚠️ Security Alert: Device ID mismatch for user: {}", tokenEntity.getUsername());
+                logger.warn("Security Alert: Device ID mismatch for user: {}", tokenEntity.getUsername());
                 return response;
             }
 
@@ -95,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenRepository.save(tokenEntity);
 
             response.put("accessToken", newAccessToken);
-            logger.info("✔️ Refreshed access token for user: {} on device: {}", username, deviceId);
+            logger.info("Refreshed access token for user: {} on device: {}", username, deviceId);
             return response;
 
         } catch (Exception e) {

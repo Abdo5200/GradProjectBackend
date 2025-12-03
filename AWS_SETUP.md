@@ -87,6 +87,61 @@ After creating your bucket, you need to configure permissions:
 - No additional permissions needed
 - Images will only be accessible to your application
 
+## CORS Configuration (Required for Presigned URL Uploads)
+
+**IMPORTANT**: If you're using presigned URLs for direct frontend uploads, you **MUST** configure CORS on your S3 bucket. Without this, browsers will block the upload requests.
+
+### Steps to Configure CORS:
+
+1. Go to AWS Console → S3 → Your Bucket
+2. Click on the **Permissions** tab
+3. Scroll down to **Cross-origin resource sharing (CORS)**
+4. Click **Edit**
+5. Paste the following CORS configuration:
+
+```json
+[
+    {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+        "AllowedOrigins": [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://yourdomain.com"
+        ],
+        "ExposeHeaders": ["ETag"],
+        "MaxAgeSeconds": 3000
+    }
+]
+```
+
+### Configuration Explanation:
+
+- **AllowedHeaders**: `["*"]` allows all headers (needed for presigned URL uploads)
+- **AllowedMethods**: Includes `PUT` which is required for presigned URL uploads
+- **AllowedOrigins**: 
+  - Add your frontend URLs (localhost for development, your domain for production)
+  - Replace `https://yourdomain.com` with your actual production domain
+  - You can add multiple origins as needed
+- **ExposeHeaders**: `["ETag"]` allows the frontend to read the ETag header (useful for verification)
+- **MaxAgeSeconds**: How long browsers cache the CORS preflight response (3000 seconds = ~50 minutes)
+
+### Important Notes:
+
+- **For Production**: Replace `https://yourdomain.com` with your actual production frontend URL
+- **For Development**: Keep `http://localhost:3000` and `http://localhost:5173` (or whatever ports you use)
+- **Security**: Only add origins you trust. Don't use `["*"]` for AllowedOrigins in production
+- **After Changes**: CORS changes take effect immediately, but you may need to clear browser cache
+
+### Testing CORS:
+
+After configuring CORS, test your presigned URL upload from the frontend. If you still see CORS errors:
+
+1. Verify the CORS configuration was saved correctly
+2. Check that your frontend URL matches exactly (including `http://` vs `https://`)
+3. Clear browser cache and try again
+4. Check browser console for the exact error message
+
 ## IAM User Permissions
 
 Your AWS user needs these permissions:
@@ -168,6 +223,61 @@ Example Response:
 }
 ```
 
+### Presigned URL Upload (Direct to S3)
+
+**Step 1: Get Presigned URL**
+
+```
+POST /api/files/presigned-url
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+
+Request Body:
+{
+  "fileName": "image.jpg",
+  "contentType": "image/jpeg",
+  "folder": "images/"  // optional, defaults to "images/"
+}
+
+Response:
+{
+  "presignedUrl": "https://bucket.s3.region.amazonaws.com/images/uuid.jpg?...",
+  "key": "images/uuid.jpg",
+  "message": "Presigned URL generated successfully"
+}
+```
+
+**Step 2: Upload Directly to S3**
+
+```
+PUT <presignedUrl>
+Content-Type: <contentType>
+
+Body: <file binary data>
+```
+
+**Step 3: Confirm Upload**
+
+```
+POST /api/files/upload-complete
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+
+Request Body:
+{
+  "key": "images/uuid.jpg"
+}
+
+Response:
+{
+  "key": "images/uuid.jpg",
+  "url": "https://bucket.s3.region.amazonaws.com/images/uuid.jpg?...",
+  "message": "Upload confirmed and saved successfully!"
+}
+```
+
+**Note**: Make sure CORS is configured on your S3 bucket (see CORS Configuration section above).
+
 ## Testing with cURL
 
 ### Upload single image:
@@ -217,6 +327,23 @@ curl -X POST http://localhost:3000/api/files/upload/multiple \
 - Verify access key and secret key are correct
 - Check for extra spaces in application.properties
 - Ensure credentials are not expired
+
+### Error: "CORS policy: No 'Access-Control-Allow-Origin' header"
+
+**This error occurs when uploading via presigned URLs from the frontend.**
+
+**Solution:**
+1. Go to S3 bucket → Permissions → CORS
+2. Add CORS configuration (see "CORS Configuration" section above)
+3. Ensure your frontend URL is in the `AllowedOrigins` list
+4. Make sure `PUT` method is included in `AllowedMethods`
+5. Clear browser cache and retry
+
+**Common causes:**
+- CORS not configured on the bucket
+- Frontend URL not in AllowedOrigins list
+- Missing `PUT` method in AllowedMethods
+- Typo in the origin URL (e.g., `http://` vs `https://`)
 
 ## Cost Considerations
 

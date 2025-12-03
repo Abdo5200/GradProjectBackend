@@ -1,20 +1,21 @@
 package com.example.gradproject.service.impl;
 
-import com.example.gradproject.Repository.PhotoRepository;
-import com.example.gradproject.entity.Image;
-import com.example.gradproject.entity.User;
-import com.example.gradproject.service.PhotoService;
-import com.example.gradproject.service.S3Service;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.example.gradproject.Repository.PhotoRepository;
+import com.example.gradproject.entity.Image;
+import com.example.gradproject.entity.User;
+import com.example.gradproject.service.PhotoService;
+import com.example.gradproject.service.S3Service;
 
 @Service
 public class PhotoServiceImpl implements PhotoService {
@@ -32,7 +33,7 @@ public class PhotoServiceImpl implements PhotoService {
     @Override
     @Transactional
     public Map<String, String> uploadPhoto(MultipartFile file, String folder,
-                                           User user) {
+            User user) {
         try {
             // Upload file and return its S3 key
             String s3Key = s3Service.uploadFileAndReturnKey(file, folder);
@@ -115,6 +116,33 @@ public class PhotoServiceImpl implements PhotoService {
         } catch (Exception e) {
             logger.error("Error deleting photo", e);
             throw new RuntimeException("Error deleting file: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Map<String, String> confirmUpload(String s3Key, User user) {
+        try {
+            // Save S3 key in DB
+            Image image = new Image();
+            image.setUrl(s3Key);
+            image.setUser(user);
+            photoRepository.save(image);
+
+            // Generate presigned URL for immediate use
+            String presignedUrl = s3Service.generatePresignedUrl(s3Key, Duration.ofMinutes(60));
+
+            Map<String, String> response = new HashMap<>();
+            response.put("key", s3Key);
+            response.put("url", presignedUrl);
+            response.put("message", "Upload confirmed and saved successfully!");
+
+            logger.info("Upload confirmed for user: {}, key: {}", user.getEmail(), s3Key);
+            return response;
+
+        } catch (Exception e) {
+            logger.error("Error confirming upload for user: {}", user.getEmail(), e);
+            throw new RuntimeException("Error confirming upload: " + e.getMessage(), e);
         }
     }
 

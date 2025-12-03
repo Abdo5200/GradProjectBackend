@@ -42,7 +42,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
             // Use composite ID for direct deletion
             String compositeId = username + ":" + deviceId;
             refreshTokenRepository.deleteById(compositeId);
-            logger.info("🔒 Revoked session for user: {} on device: {} (ID: {})", username, deviceId, compositeId);
+            logger.info("Revoked session for user: {} on device: {} (ID: {})", username, deviceId, compositeId);
             return true;
         } catch (Exception e) {
             logger.error("Error revoking session for user: {} on device: {}", username, deviceId, e);
@@ -62,7 +62,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
             }
         }
 
-        logger.info("🔒 Revoked {} other session(s) for user: {}", revokedCount, username);
+        logger.info("Revoked {} other session(s) for user: {}", revokedCount, username);
         return revokedCount;
     }
 
@@ -73,7 +73,7 @@ public class SessionManagementServiceImpl implements SessionManagementService {
 
         tokens.forEach(refreshTokenRepository::delete);
 
-        logger.info("🔒 Revoked all {} session(s) for user: {}", count, username);
+        logger.info("Revoked all {} session(s) for user: {}", count, username);
         return count;
     }
 }
