@@ -19,5 +19,15 @@ public interface RefreshTokenRepository extends CrudRepository<RefreshToken, Str
 
     void deleteByUsername(String username);
 
+    Optional<RefreshToken> findByUsernameAndDeviceId(String username, String deviceId);
+
+    void deleteByUsernameAndDeviceId(String username, String deviceId);
+
+    Optional<RefreshToken> findByDeviceId(String deviceId);
+
+    void deleteByDeviceId(String deviceId);
+
+    Optional<RefreshToken> findByAccessTokenHash(String accessTokenHash);
+
     List<RefreshToken> findByExpiryDateBefore(Date date);
 }

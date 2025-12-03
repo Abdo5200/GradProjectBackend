@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import com.example.gradproject.config.JwtUtil;
 import com.example.gradproject.service.AuthService;
 import com.example.gradproject.service.CookieService;
 import com.example.gradproject.service.RefreshTokenHandler;
@@ -15,10 +16,12 @@ public class RefreshTokenHandlerImpl implements RefreshTokenHandler {
 
     private final AuthService authService;
     private final CookieService cookieService;
+    private final JwtUtil jwtUtil;
 
-    public RefreshTokenHandlerImpl(AuthService authService, CookieService cookieService) {
+    public RefreshTokenHandlerImpl(AuthService authService, CookieService cookieService, JwtUtil jwtUtil) {
         this.authService = authService;
         this.cookieService = cookieService;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -29,7 +32,17 @@ public class RefreshTokenHandlerImpl implements RefreshTokenHandler {
             return Map.of("error", "Refresh token is missing");
         }
 
-        return authService.refreshToken(refreshToken);
+        // Extract deviceId from JWT refresh token
+        String deviceId;
+        try {
+            deviceId = jwtUtil.extractDeviceId(refreshToken);
+            if (deviceId == null || deviceId.isEmpty()) {
+                return Map.of("error", "Device ID not found in refresh token");
+            }
+        } catch (Exception e) {
+            return Map.of("error", "Invalid refresh token format");
+        }
+
+        return authService.refreshToken(refreshToken, deviceId);
     }
 }
-

@@ -6,5 +6,5 @@ public interface AuthService {
 
     Map<String, String> logout(String token);
 
-    Map<String, String> refreshToken(String refreshToken);
+    Map<String, String> refreshToken(String refreshToken, String deviceId);
 }

@@ -50,4 +50,3 @@ public class CookieServiceImpl implements CookieService {
         return null;
     }
 }
-

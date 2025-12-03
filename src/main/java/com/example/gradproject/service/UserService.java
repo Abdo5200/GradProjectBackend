@@ -16,7 +16,7 @@ public interface UserService {
 
     SignupResponse registerUser(SignupRequest signupRequest);
 
-    LoginResponse authenticateUser(LoginRequest loginRequest);
+    LoginResponse authenticateUser(LoginRequest loginRequest, String deviceId);
 
     ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request);
 

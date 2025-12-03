@@ -83,13 +83,21 @@ public class JwtUtil {
                 .compact();
     }
 
-    public String generateRefreshToken(UserDetails userDetails) {
+    public String generateRefreshToken(UserDetails userDetails, String deviceId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("deviceId", deviceId);
+
         return Jwts.builder()
+                .claims(claims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
+    }
+
+    public String extractDeviceId(String token) {
+        return extractClaim(token, claims -> claims.get("deviceId", String.class));
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {

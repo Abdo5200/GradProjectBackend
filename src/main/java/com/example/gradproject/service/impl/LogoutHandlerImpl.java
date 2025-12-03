@@ -43,14 +43,34 @@ public class LogoutHandlerImpl implements LogoutHandler {
         try {
             // Extract and blacklist the access token if present
             String token = tokenExtractionService.extractBearerToken(request);
+            String refreshToken = cookieService.extractRefreshTokenFromCookie(request);
+
             if (token != null) {
-                // Delete all refresh tokens for this user from Redis
+                // Get username from access token
                 String username = jwtUtil.extractUsername(token);
 
-                // Delete each token individually (more reliable with Redis)
-                refreshTokenRepository.findByUsername(username).forEach(refreshTokenRepository::delete);
+                // Extract deviceId from refresh token JWT
+                String deviceId = null;
+                if (refreshToken != null) {
+                    try {
+                        deviceId = jwtUtil.extractDeviceId(refreshToken);
+                    } catch (Exception e) {
+                        logger.warn("Could not extract deviceId from refresh token during logout", e);
+                    }
+                }
 
-                logger.info("🔒 Deleted all refresh tokens for user: {}", username);
+                // Delete refresh token for this specific device
+                if (deviceId != null && !deviceId.isEmpty()) {
+                    // Use composite ID for direct deletion
+                    String compositeId = username + ":" + deviceId;
+                    refreshTokenRepository.deleteById(compositeId);
+                    logger.info("🔒 Deleted refresh token for user: {} on device: {} (ID: {})", username, deviceId,
+                            compositeId);
+                } else {
+                    // Fallback: delete all tokens if no device ID
+                    refreshTokenRepository.findByUsername(username).forEach(refreshTokenRepository::delete);
+                    logger.info("🔒 Deleted all refresh tokens for user: {}", username);
+                }
 
                 // Blacklist the access token
                 authService.logout(token);

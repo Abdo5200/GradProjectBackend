@@ -1,12 +1,14 @@
 package com.example.gradproject.service.impl;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.logging.Logger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -44,7 +46,7 @@ public class UserServiceImpl implements UserService {
     private final UserLoginResponseUserInfoMapper userLoginResponseUserInfoMapper;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
-    private final Logger logger = Logger.getLogger(UserServiceImpl.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     public UserServiceImpl(UserRepo userRepo,
             AuthenticationManager authenticationManager, JwtUtil jwtUtil,
@@ -97,7 +99,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public LoginResponse authenticateUser(LoginRequest loginRequest) {
+    public LoginResponse authenticateUser(LoginRequest loginRequest, String deviceId) {
         try {
             // Authenticate using Spring Security
             Authentication authentication = authenticationManager.authenticate(
@@ -106,52 +108,42 @@ public class UserServiceImpl implements UserService {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String username = userDetails.getUsername();
 
-            // 🔒 SECURITY: Check for existing valid tokens and revoke them
-            List<RefreshToken> existingTokens = refreshTokenRepository.findByUsername(username);
-            if (!existingTokens.isEmpty()) {
-                Date now = new Date();
-                int revokedCount = 0;
-
-                for (RefreshToken existingToken : existingTokens) {
-                    // Check if token is still valid (not expired)
-                    if (existingToken.getExpiryDate() != null && existingToken.getExpiryDate().after(now)) {
-                        revokedCount++;
-                    }
-                    // Delete each token individually
-                    refreshTokenRepository.delete(existingToken);
-                }
-
-                if (revokedCount > 0) {
-                    logger.info(
-                            "🔒 Security: Revoked " + revokedCount + " existing valid token(s) for user: " + username);
-                }
+            // 🔒 SECURITY: Delete existing refresh token for this device (if any)
+            Optional<RefreshToken> existingDeviceToken = refreshTokenRepository.findByUsernameAndDeviceId(username,
+                    deviceId);
+            if (existingDeviceToken.isPresent()) {
+                refreshTokenRepository.delete(existingDeviceToken.get());
+                logger.info("Replaced existing session for user: {} on device: {}", username, deviceId);
             }
 
             // Generate new JWT tokens
             String token = jwtUtil.generateToken(userDetails);
-            String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+            String refreshToken = jwtUtil.generateRefreshToken(userDetails, deviceId);
 
-            // Save new refresh token to Redis
+            // Create access token hash for pairing using SHA-256
+            String accessTokenHash = generateTokenHash(token);
+
+            // Save new refresh token to Redis with device ID
             RefreshToken refreshTokenEntity = new RefreshToken();
+            refreshTokenEntity.setId(username + ":" + deviceId); // Composite key
             refreshTokenEntity.setToken(refreshToken);
             refreshTokenEntity.setUsername(username);
+            refreshTokenEntity.setDeviceId(deviceId);
+            refreshTokenEntity.setAccessTokenHash(accessTokenHash);
             refreshTokenEntity.setExpiryDate(jwtUtil.extractExpiration(refreshToken));
+            refreshTokenEntity.setCreatedAt(LocalDateTime.now());
+            refreshTokenEntity.setLastUsed(LocalDateTime.now());
             refreshTokenRepository.save(refreshTokenEntity);
 
-            logger.info("✅ Issued new tokens for user: " + username);
+            logger.info("Issued new tokens for user: {} on device: {}", username, deviceId);
 
-            // Get user details
-            Optional<User> optionalUser = userRepo.findByEmail(loginRequest.getEmail());
-            if (optionalUser.isEmpty()) {
-                return new LoginResponse("User not found", false, null, null, null);
-            }
-
-            User user = optionalUser.get();
+            // Get user details (already fetched earlier)
+            User user = userRepo.findByEmail(loginRequest.getEmail()).get();
             LoginResponse.UserInfo userInfo = userLoginResponseUserInfoMapper.UserToUserInfoMapper(user);
             return new LoginResponse("Login successful", true, token, refreshToken, userInfo);
 
         } catch (Exception e) {
-            logger.warning("❌ Login failed for email: " + loginRequest.getEmail() + " - " + e.getMessage());
+            logger.warn("Login failed for email: {} - {}", loginRequest.getEmail(), e.getMessage());
             return new LoginResponse("Invalid email or password", false, null, null, null);
         }
     }
@@ -220,6 +212,31 @@ public class UserServiceImpl implements UserService {
             return new ResetPasswordResponse(
                     "An error occurred while resetting your password.",
                     false);
+        }
+    }
+
+    /**
+     * Generate SHA-256 hash of the access token for pairing with refresh token
+     */
+    private String generateTokenHash(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+
+            // Convert byte array to hex string
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("SHA-256 algorithm not found", e);
+            // Fallback to absolute value of hashCode if SHA-256 fails
+            return String.valueOf(Math.abs(token.hashCode()));
         }
     }
 }

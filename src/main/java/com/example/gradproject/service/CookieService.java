@@ -8,7 +8,7 @@ public interface CookieService {
     /**
      * Creates and sets a refresh token cookie in the HTTP response
      * 
-     * @param response the HTTP response
+     * @param response     the HTTP response
      * @param refreshToken the refresh token value
      */
     void setRefreshTokenCookie(HttpServletResponse response, String refreshToken);
@@ -28,4 +28,3 @@ public interface CookieService {
      */
     String extractRefreshTokenFromCookie(HttpServletRequest request);
 }
-

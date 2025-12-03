@@ -1,5 +1,7 @@
 package com.example.gradproject.service.impl;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.example.gradproject.DTO.LoginRequest;
@@ -23,17 +25,20 @@ public class LoginResponseHandlerImpl implements LoginResponseHandler {
 
     @Override
     public LoginResponse handleLogin(LoginRequest loginRequest, HttpServletResponse response) {
-        LoginResponse loginResponse = userService.authenticateUser(loginRequest);
-        
+        // Generate new device ID for this login
+        String deviceId = UUID.randomUUID().toString();
+
+        // Authenticate with device ID (will be embedded in refresh token JWT)
+        LoginResponse loginResponse = userService.authenticateUser(loginRequest, deviceId);
+
         if (loginResponse.isSuccess() && loginResponse.getRefreshToken() != null) {
-            // Set refresh token as HttpOnly cookie
+            // Set refresh token as HttpOnly cookie (deviceId embedded in JWT)
             cookieService.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
-            
+
             // Remove refresh token from response body for security
             loginResponse.setRefreshToken(null);
         }
-        
+
         return loginResponse;
     }
 }
-
