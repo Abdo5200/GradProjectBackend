@@ -1,6 +1,5 @@
 package com.example.gradproject.entity;
 
-import java.time.LocalDateTime;
 import java.util.Date;
 
 import org.springframework.data.annotation.Id;
@@ -16,19 +15,9 @@ import lombok.NoArgsConstructor;
 @RedisHash(value = "RefreshToken", timeToLive = 2592000) // 30 days in seconds
 public class RefreshToken {
     @Id
-    private String id; // Format: "username:deviceId"
+    private String id; // Format: "username:deviceId" - composite key for O(1) lookup
 
     private String token; // The actual refresh token JWT
 
-    private String username; // User's email (no index needed - always use composite key)
-
-    private String deviceId; // Random UUID for device identification
-
-    private String accessTokenHash; // Hash of current access token for pairing
-
-    private Date expiryDate;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime lastUsed;
+    private Date expiryDate; // Token expiration date
 }

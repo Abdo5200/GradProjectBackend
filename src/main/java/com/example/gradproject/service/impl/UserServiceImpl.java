@@ -1,8 +1,5 @@
 package com.example.gradproject.service.impl;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -119,19 +116,11 @@ public class UserServiceImpl implements UserService {
             String token = jwtUtil.generateToken(userDetails);
             String refreshToken = jwtUtil.generateRefreshToken(userDetails, deviceId);
 
-            // Create access token hash for pairing using SHA-256
-            String accessTokenHash = generateTokenHash(token);
-
-            // Save new refresh token to Redis with device ID
+            // Save new refresh token to Redis with composite key
             RefreshToken refreshTokenEntity = new RefreshToken();
             refreshTokenEntity.setId(username + ":" + deviceId); // Composite key
             refreshTokenEntity.setToken(refreshToken);
-            refreshTokenEntity.setUsername(username);
-            refreshTokenEntity.setDeviceId(deviceId);
-            refreshTokenEntity.setAccessTokenHash(accessTokenHash);
             refreshTokenEntity.setExpiryDate(jwtUtil.extractExpiration(refreshToken));
-            refreshTokenEntity.setCreatedAt(LocalDateTime.now());
-            refreshTokenEntity.setLastUsed(LocalDateTime.now());
             refreshTokenRepository.save(refreshTokenEntity);
 
             logger.info("Issued new tokens for user: {} on device: {}", username, deviceId);
@@ -214,28 +203,4 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * Generate SHA-256 hash of the access token for pairing with refresh token
-     */
-    private String generateTokenHash(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-
-            // Convert byte array to hex string
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            logger.error("SHA-256 algorithm not found", e);
-            // Fallback to absolute value of hashCode if SHA-256 fails
-            return String.valueOf(Math.abs(token.hashCode()));
-        }
-    }
 }

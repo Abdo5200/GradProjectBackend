@@ -1,8 +1,5 @@
 package com.example.gradproject.service.impl;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -93,11 +90,6 @@ public class AuthServiceImpl implements AuthService {
             // Generate new access token
             String newAccessToken = jwtUtil.generateToken(userDetails);
 
-            // Update access token hash and last used timestamp
-            tokenEntity.setAccessTokenHash(generateTokenHash(newAccessToken));
-            tokenEntity.setLastUsed(java.time.LocalDateTime.now());
-            refreshTokenRepository.save(tokenEntity);
-
             response.put("accessToken", newAccessToken);
             logger.info("Refreshed access token for user: {} on device: {}", username, deviceId);
             return response;
@@ -109,28 +101,4 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    /**
-     * Generate SHA-256 hash of the access token for pairing with refresh token
-     */
-    private String generateTokenHash(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-
-            // Convert byte array to hex string
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            logger.error("SHA-256 algorithm not found", e);
-            // Fallback to absolute value of hashCode if SHA-256 fails
-            return String.valueOf(Math.abs(token.hashCode()));
-        }
-    }
 }

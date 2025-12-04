@@ -55,8 +55,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> postLogin(@Valid @RequestBody LoginRequest loginRequest,
-            HttpServletResponse response) {
-        LoginResponse loginResponse = loginResponseHandler.handleLogin(loginRequest, response);
+            HttpServletRequest request, HttpServletResponse response) {
+        LoginResponse loginResponse = loginResponseHandler.handleLogin(loginRequest, request, response);
         if (loginResponse.isSuccess()) {
             return ResponseEntity.ok(loginResponse);
         } else {
