@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.example.gradproject.Repository.PhotoRepository;
 import com.example.gradproject.entity.Image;
@@ -28,35 +27,6 @@ public class PhotoServiceImpl implements PhotoService {
     public PhotoServiceImpl(S3Service s3Service, PhotoRepository photoRepository) {
         this.s3Service = s3Service;
         this.photoRepository = photoRepository;
-    }
-
-    @Override
-    @Transactional
-    public Map<String, String> uploadPhoto(MultipartFile file, String folder,
-            User user) {
-        try {
-            // Upload file and return its S3 key
-            String s3Key = s3Service.uploadFileAndReturnKey(file, folder);
-
-            // Save S3 key in DB
-            Image image = new Image();
-            image.setUrl(s3Key);
-            image.setUser(user);
-            photoRepository.save(image);
-
-            // Return fresh presigned URL for immediate use
-            String presignedUrl = s3Service.generatePresignedUrl(s3Key, Duration.ofMinutes(60));
-
-            Map<String, String> response = new HashMap<>();
-            response.put("url", presignedUrl);
-            response.put("message", "File uploaded and saved successfully!");
-
-            return response;
-
-        } catch (Exception e) {
-            logger.error("Error uploading photo for user: {}", user.getEmail(), e);
-            throw new RuntimeException("Error uploading file: " + e.getMessage(), e);
-        }
     }
 
     @Override

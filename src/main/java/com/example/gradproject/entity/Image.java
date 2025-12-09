@@ -1,5 +1,9 @@
 package com.example.gradproject.entity;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,6 +22,10 @@ public class Image {
 
     @Column(name = "url", columnDefinition = "TEXT", nullable = false)
     private String url;
+
+    @CreationTimestamp
+    @Column(name = "uploaded_at", nullable = false, updatable = false)
+    private LocalDateTime uploadedAt;
 
     // Many photos belong to one user
     @ManyToOne(fetch = FetchType.LAZY)

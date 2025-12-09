@@ -1,8 +1,6 @@
 package com.example.gradproject.controller;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -14,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.example.gradproject.DTO.PresignedUrlRequest;
 import com.example.gradproject.DTO.PresignedUrlResponse;
@@ -22,7 +19,6 @@ import com.example.gradproject.DTO.UploadCompleteRequest;
 import com.example.gradproject.Repository.UserRepo;
 import com.example.gradproject.entity.User;
 import com.example.gradproject.exception.UserNotFoundException;
-import com.example.gradproject.service.FileValidationService;
 import com.example.gradproject.service.PhotoService;
 import com.example.gradproject.service.S3Service;
 
@@ -32,57 +28,15 @@ public class FileUploadController {
 
     private final PhotoService photoService;
     private final S3Service s3Service;
-    private final FileValidationService fileValidationService;
     private final UserRepo userRepo;
 
     public FileUploadController(
             PhotoService photoService,
             S3Service s3Service,
-            FileValidationService fileValidationService,
             UserRepo userRepo) {
         this.photoService = photoService;
-        this.fileValidationService = fileValidationService;
         this.s3Service = s3Service;
         this.userRepo = userRepo;
-    }
-
-    @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> uploadFile(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "folder", required = false, defaultValue = "images/") String folder,
-            Authentication authentication) {
-
-        // Validate file
-        fileValidationService.validateFileNotEmpty(file);
-        fileValidationService.validateFileIsImage(file);
-
-        // Get authenticated user
-        String userEmail = authentication.getName();
-        User user = userRepo.findByEmail(userEmail)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        // Delegate to photo service
-        Map<String, String> response = photoService.uploadPhoto(file, folder, user);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/upload/multiple")
-    public ResponseEntity<Map<String, Object>> uploadFiles(
-            @RequestParam("files") MultipartFile[] files,
-            @RequestParam(value = "folder", required = false, defaultValue = "images/") String folder) {
-
-        // Validate files
-        fileValidationService.validateFilesNotEmpty(files);
-
-        // Delegate to S3 service
-        List<String> urls = s3Service.uploadFiles(files, folder);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("urls", urls);
-        response.put("count", urls.size());
-        response.put("message", "Files uploaded successfully");
-
-        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/delete")

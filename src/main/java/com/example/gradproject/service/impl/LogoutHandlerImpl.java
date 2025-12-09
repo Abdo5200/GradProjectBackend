@@ -11,7 +11,7 @@ import com.example.gradproject.config.JwtUtil;
 import com.example.gradproject.service.AuthService;
 import com.example.gradproject.service.CookieService;
 import com.example.gradproject.service.LogoutHandler;
-import com.example.gradproject.service.TokenExtractionService;
+import com.example.gradproject.service.TokenManagementService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,17 +23,17 @@ public class LogoutHandlerImpl implements LogoutHandler {
 
     private final AuthService authService;
     private final CookieService cookieService;
-    private final TokenExtractionService tokenExtractionService;
+    private final TokenManagementService tokenManagementService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
 
     public LogoutHandlerImpl(AuthService authService, CookieService cookieService,
-            TokenExtractionService tokenExtractionService,
+            TokenManagementService tokenManagementService,
             RefreshTokenRepository refreshTokenRepository,
             JwtUtil jwtUtil) {
         this.authService = authService;
         this.cookieService = cookieService;
-        this.tokenExtractionService = tokenExtractionService;
+        this.tokenManagementService = tokenManagementService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtUtil = jwtUtil;
     }
@@ -41,41 +41,42 @@ public class LogoutHandlerImpl implements LogoutHandler {
     @Override
     public Map<String, String> handleLogout(HttpServletRequest request, HttpServletResponse response) {
         try {
-            // Extract and blacklist the access token if present
-            String token = tokenExtractionService.extractBearerToken(request);
+            String token = tokenManagementService.extractBearerToken(request);
             String refreshToken = cookieService.extractRefreshTokenFromCookie(request);
 
-            if (token != null) {
-                // Get username from access token
-                String username = jwtUtil.extractUsername(token);
+            // Primary: Use refresh token (HttpOnly cookie) for user identification
+            // This works even when access token is expired
+            if (refreshToken != null) {
+                try {
+                    String username = jwtUtil.extractUsername(refreshToken);
+                    String deviceId = jwtUtil.extractDeviceId(refreshToken);
 
-                // Extract deviceId from refresh token JWT
-                String deviceId = null;
-                if (refreshToken != null) {
-                    try {
-                        deviceId = jwtUtil.extractDeviceId(refreshToken);
-                    } catch (Exception e) {
-                        logger.warn("Could not extract deviceId from refresh token during logout", e);
+                    if (username != null && deviceId != null && !deviceId.isEmpty()) {
+                        String compositeId = username + ":" + deviceId;
+                        refreshTokenRepository.deleteById(compositeId);
+                        logger.info("Deleted refresh token for user: {} on device: {} (ID: {})",
+                                username, deviceId, compositeId);
                     }
+                } catch (Exception e) {
+                    logger.warn("Could not extract user info from refresh token during logout: {}", e.getMessage());
                 }
-
-                // Delete refresh token for this specific device
-                if (deviceId != null && !deviceId.isEmpty()) {
-                    // Use composite ID for direct deletion
-                    String compositeId = username + ":" + deviceId;
-                    refreshTokenRepository.deleteById(compositeId);
-                    logger.info("Deleted refresh token for user: {} on device: {} (ID: {})", username, deviceId,
-                            compositeId);
-                } else {
-                    // Fallback: Could not extract deviceId - log warning only
-                    logger.warn("Could not extract deviceId from refresh token for user: {} during logout", username);
-                }
-
-                // Blacklist the access token
-                authService.logout(token);
             }
 
-            // Clear refresh token cookie
+            // Best-effort: Blacklist access token if it's valid (not expired)
+            if (token != null) {
+                try {
+                    // Only blacklist if token is not expired (otherwise it's already invalid)
+                    if (!jwtUtil.isTokenExpired(token)) {
+                        authService.logout(token);
+                        logger.info("Blacklisted access token during logout");
+                    }
+                } catch (Exception e) {
+                    // Access token might be expired or malformed - that's OK for logout
+                    logger.debug("Could not blacklist access token (might be expired): {}", e.getMessage());
+                }
+            }
+
+            // Always clear the refresh token cookie
             cookieService.clearRefreshTokenCookie(response);
 
             return Map.of("message", "Logout successful");

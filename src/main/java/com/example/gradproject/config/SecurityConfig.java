@@ -68,6 +68,7 @@ public class SecurityConfig {
                                 // Public authentication APIs
                                 "/auth/signup",
                                 "/auth/login",
+                                "/auth/logout",
                                 "/auth/refresh-token",
                                 "/auth/forgot-password",
                                 "/auth/reset-password",

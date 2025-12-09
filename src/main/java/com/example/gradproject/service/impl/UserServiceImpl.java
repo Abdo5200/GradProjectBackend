@@ -1,26 +1,6 @@
 package com.example.gradproject.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import com.example.gradproject.DTO.ForgotPasswordRequest;
-import com.example.gradproject.DTO.ForgotPasswordResponse;
-import com.example.gradproject.DTO.LoginRequest;
-import com.example.gradproject.DTO.LoginResponse;
-import com.example.gradproject.DTO.ResetPasswordRequest;
-import com.example.gradproject.DTO.ResetPasswordResponse;
-import com.example.gradproject.DTO.SignupRequest;
-import com.example.gradproject.DTO.SignupResponse;
+import com.example.gradproject.DTO.*;
 import com.example.gradproject.Repository.RefreshTokenRepository;
 import com.example.gradproject.Repository.UserRepo;
 import com.example.gradproject.config.JwtUtil;
@@ -30,8 +10,19 @@ import com.example.gradproject.exception.UserNotFoundException;
 import com.example.gradproject.mappers.SignupRequestUserMapper;
 import com.example.gradproject.mappers.UserLoginResponseUserInfoMapper;
 import com.example.gradproject.service.UserService;
-
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -46,12 +37,12 @@ public class UserServiceImpl implements UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     public UserServiceImpl(UserRepo userRepo,
-            AuthenticationManager authenticationManager, JwtUtil jwtUtil,
-            RefreshTokenRepository refreshTokenRepository,
-            SignupRequestUserMapper signupRequestUserMapper,
-            UserLoginResponseUserInfoMapper userLoginResponseUserInfoMapper,
-            EmailService emailService,
-            PasswordEncoder passwordEncoder) {
+                           AuthenticationManager authenticationManager, JwtUtil jwtUtil,
+                           RefreshTokenRepository refreshTokenRepository,
+                           SignupRequestUserMapper signupRequestUserMapper,
+                           UserLoginResponseUserInfoMapper userLoginResponseUserInfoMapper,
+                           EmailService emailService,
+                           PasswordEncoder passwordEncoder) {
         this.userRepo = userRepo;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
@@ -90,7 +81,7 @@ public class UserServiceImpl implements UserService {
             return new SignupResponse("User registered Successfully", true, savedUser.getId());
 
         } catch (Exception e) {
-            return new SignupResponse("Registeration failed", false, null);
+            return new SignupResponse("Registration failed", false, null);
         }
     }
 
@@ -117,21 +108,19 @@ public class UserServiceImpl implements UserService {
             String refreshToken = jwtUtil.generateRefreshToken(userDetails, deviceId);
 
             // Save new refresh token to Redis with composite key
-            RefreshToken refreshTokenEntity = new RefreshToken();
-            refreshTokenEntity.setId(username + ":" + deviceId); // Composite key
-            refreshTokenEntity.setToken(refreshToken);
-            refreshTokenEntity.setExpiryDate(jwtUtil.extractExpiration(refreshToken));
+            RefreshToken refreshTokenEntity = RefreshToken.builder()
+                    .id(username + ":" + deviceId)
+                    .token(refreshToken)
+                    .expiryDate(jwtUtil.extractExpiration(refreshToken))
+                    .build();
             refreshTokenRepository.save(refreshTokenEntity);
 
-            logger.info("Issued new tokens for user: {} on device: {}", username, deviceId);
-
-            // Get user details (already fetched earlier)
+            // Get user details
             User user = userRepo.findByEmail(loginRequest.getEmail()).get();
             LoginResponse.UserInfo userInfo = userLoginResponseUserInfoMapper.UserToUserInfoMapper(user);
             return new LoginResponse("Login successful", true, token, refreshToken, userInfo);
 
         } catch (Exception e) {
-            logger.warn("Login failed for email: {} - {}", loginRequest.getEmail(), e.getMessage());
             return new LoginResponse("Invalid email or password", false, null, null, null);
         }
     }
